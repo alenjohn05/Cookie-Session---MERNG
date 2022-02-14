@@ -1,0 +1,59 @@
+version: "3"
+services:
+  api-gateway:
+    build:
+      context: "."
+      dockerfile: "./api-gateway/Dockerfile"
+    depends_on:
+      - listings-service
+      - users-service
+    ports:
+      - "7000:7000"
+    volumes:
+      - ./api-gateway:/opt/app
+
+  listings-service:
+    build:
+      context: "."
+      dockerfile: "./listing-service/Dockerfile"
+    depends_on:
+      - listing-service-db
+    environment:
+      - DB_URI=mysql://root:pc22@listing-service-db/listing-database?charset=UTF8
+    ports:
+      - "7100:7100"
+    volumes:
+      - ./listing-service:/opt/app
+
+  listing-service-db:
+    environment:
+      - MYSQL_ROOT_PASSWORD=pc22
+      - MYSQL_DATABASE=listing-database
+    image: mysql:8
+    ports:
+      - 0.0.0.0:7200:3306
+
+  users-service:
+    build:
+      context: "."
+      dockerfile: "./users-service/Dockerfile"
+    environment:
+      - DB_URI=mongodb+srv://alen:alen@cluster0.1fw83.mongodb.net/authDatabase?retryWrites=true&w=majority
+      - REDISPORT=6739
+      - REDISHOST='redis'
+    ports:
+      - "7101:7101"
+    depends_on:
+      - users-service-db
+      - redis-store
+    volumes:
+      - ./users-service:/opt/app
+
+  users-service-db:
+    image : mongo
+    ports:
+    - 27017:27017
+  redis-store:
+    image: redis:6
+    ports:
+      - 0.0.0.0:6379:6379
